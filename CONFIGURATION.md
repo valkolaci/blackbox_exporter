@@ -49,6 +49,9 @@ The other placeholders are specified separately.
   headers:
     [ <string>: <string> ... ]
 
+  # The compression algorithm to use to decompress the response (gzip, br, deflate, identity).
+  [ compression: <string> | default = "" ]
+
   # Whether or not the probe will follow any redirects.
   [ no_follow_redirects: <boolean> | default = false ]
 
