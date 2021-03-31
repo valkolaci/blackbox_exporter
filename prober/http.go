@@ -477,7 +477,7 @@ func ProbeHTTP(ctx context.Context, target string, module config.Module, registr
 		if httpConfig.Compression != "" {
 			dec, err := getDecompressionReader(httpConfig.Compression, resp.Body)
 			if err != nil {
-				level.Info(logger).Log("msg", "Failed to get decompressor for HTTP response body", "err", err.Error())
+				level.Info(logger).Log("msg", "Failed to get decompressor for HTTP response body", "err", err)
 				success = false
 			} else if dec != nil {
 				// Since we are replacing the original resp.Body with the decoder, we need to make sure
@@ -488,7 +488,7 @@ func ProbeHTTP(ctx context.Context, target string, module config.Module, registr
 					if err != nil {
 						// At this point we cannot really do anything with this error, but log
 						// it in case it contains useful information as to what's the problem.
-						level.Info(logger).Log("msg", "Error while closing response from server", "error", err.Error())
+						level.Info(logger).Log("msg", "Error while closing response from server", "err", err)
 					}
 				}(resp.Body)
 
