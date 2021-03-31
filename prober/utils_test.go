@@ -263,3 +263,81 @@ func checkMetrics(expected map[string]map[string]map[string]struct{}, mfs []*dto
 		}
 	}
 }
+
+func TestIsEncodingAcceptable(t *testing.T) {
+	testcases := map[string]struct {
+		input          string
+		acceptEncoding string
+		expected       bool
+	}{
+		"trivial": {
+			input:          "gzip",
+			acceptEncoding: "gzip",
+			expected:       true,
+		},
+		"trivial, quality": {
+			input:          "gzip",
+			acceptEncoding: "gzip;q=1.0",
+			expected:       true,
+		},
+		"first": {
+			input:          "gzip",
+			acceptEncoding: "gzip, compress",
+			expected:       true,
+		},
+		"second": {
+			input:          "gzip",
+			acceptEncoding: "compress, gzip",
+			expected:       true,
+		},
+		"missing": {
+			input:          "br",
+			acceptEncoding: "gzip, compress",
+			expected:       false,
+		},
+		"*": {
+			input:          "br",
+			acceptEncoding: "gzip, compress, *",
+			expected:       true,
+		},
+		"* with quality": {
+			input:          "br",
+			acceptEncoding: "gzip, compress, *;q=0.1",
+			expected:       true,
+		},
+		"rejected": {
+			input:          "br",
+			acceptEncoding: "gzip, compress, br;q=0.0",
+			expected:       false,
+		},
+		"rejected *": {
+			input:          "br",
+			acceptEncoding: "gzip, compress, *;q=0.0",
+			expected:       false,
+		},
+		"complex": {
+			input:          "br",
+			acceptEncoding: "gzip;q=1.0, compress;q=0.5, br;q=0.1, *;q=0.0",
+			expected:       true,
+		},
+		"complex out of order": {
+			input:          "br",
+			acceptEncoding: "*;q=0.0, compress;q=0.5, br;q=0.1, gzip;q=1.0",
+			expected:       true,
+		},
+		"complex with extra blanks": {
+			input:          "br",
+			acceptEncoding: " gzip;q=1.0, compress; q=0.5, br;q=0.1, *; q=0.0 ",
+			expected:       true,
+		},
+	}
+
+	for name, tc := range testcases {
+		t.Run(name, func(t *testing.T) {
+			actual := isEncodingAcceptable(tc.input, tc.acceptEncoding)
+			if actual != tc.expected {
+				t.Errorf("Unexpected result: input=%q acceptEncoding=%q expected=%t actual=%t", tc.input, tc.acceptEncoding, tc.expected, actual)
+			}
+		})
+	}
+}

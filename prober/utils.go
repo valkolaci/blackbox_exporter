@@ -17,7 +17,11 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"math"
 	"net"
+	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -107,4 +111,50 @@ func ipHash(ip net.IP) float64 {
 	h := fnv.New32a()
 	h.Write(ip)
 	return float64(h.Sum32())
+}
+
+func isEncodingAcceptable(encoding, acceptEncoding string) bool {
+	type encodingQuality struct {
+		encoding string
+		quality  float32
+	}
+
+	var encodings []encodingQuality
+
+	for _, parts := range strings.Split(acceptEncoding, ",") {
+		var e encodingQuality
+
+		if idx := strings.LastIndexByte(parts, ';'); idx == -1 {
+			e.encoding = strings.TrimSpace(parts)
+			e.quality = 1.0
+		} else {
+			parseQuality := func(str string) float32 {
+				q, err := strconv.ParseFloat(str, 32)
+				if err != nil {
+					return 0
+				}
+				return float32(math.Round(q*1000) / 1000)
+			}
+
+			e.encoding = strings.TrimSpace(parts[:idx])
+
+			q := strings.TrimSpace(parts[idx+1:])
+			q = strings.TrimPrefix(q, "q=")
+			e.quality = parseQuality(q)
+		}
+
+		encodings = append(encodings, e)
+	}
+
+	sort.SliceStable(encodings, func(i, j int) bool {
+		return encodings[j].quality < encodings[i].quality
+	})
+
+	for _, e := range encodings {
+		if encoding == e.encoding || e.encoding == "*" {
+			return e.quality > 0
+		}
+	}
+
+	return false
 }
