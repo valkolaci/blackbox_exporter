@@ -409,10 +409,14 @@ func ProbeHTTP(ctx context.Context, target string, module config.Module, registr
 
 		// If there's a compression setting, and there's also an
 		// accept-encoding header, they MUST match, otherwise we
-		// end up requesting one encoding and trying to process
-		// a different one, which is more likely than not going
-		// to fail.
-		if httpConfig.Compression != "" && normalizedKey == "Accept-Encoding" && !strings.EqualFold(value, httpConfig.Compression) {
+		// end up requesting something that doesn't include the
+		// specified compression, and that's likely to fail,
+		// depending on how the server is configured. Testing
+		// that the server _ignores_ Accept-Encoding, e.g. by
+		// not including a particular compression in the header
+		// but expecting it in the response falls out of the
+		// scope of the tests we perform.
+		if httpConfig.Compression != "" && normalizedKey == "Accept-Encoding" && !isEncodingAcceptable(httpConfig.Compression, value) {
 			level.Error(logger).Log("msg", "Invalid configuration", key, value, "compression", httpConfig.Compression)
 			return
 		}
